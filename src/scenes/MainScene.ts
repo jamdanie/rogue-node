@@ -1,5 +1,14 @@
 import Phaser from 'phaser';
 
+type TerminalScenario = {
+  title: string;
+  body: string;
+  optionA: string;
+  optionB: string;
+  correct: 'A' | 'B';
+  successStatus: string;
+};
+
 export default class MainScene extends Phaser.Scene {
   player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   keys!: any;
@@ -35,6 +44,94 @@ export default class MainScene extends Phaser.Scene {
   walls!: Phaser.Physics.Arcade.StaticGroup;
   securityDoor!: Phaser.GameObjects.Sprite;
   cameraZone!: Phaser.GameObjects.Rectangle;
+
+  terminalScenarios: TerminalScenario[] = [
+    {
+      title: 'OUTBOUND TRAFFIC ALERT',
+      body: `> scan outbound traffic
+
+Suspicious outbound connection detected.
+
+SOURCE:      OPS-RACK-03
+DESTINATION: 185.199.108.153
+PORT:        6667
+STATUS:      UNAUTHORIZED
+
+Which CIA Triad principle is MOST at risk if unauthorized data leaves the network?`,
+      optionA: 'Confidentiality',
+      optionB: 'Availability',
+      correct: 'A',
+      successStatus: 'Status: SOC terminal reviewed. Confidentiality risk confirmed.',
+    },
+    {
+      title: 'FAILED LOGIN ALERT',
+      body: `> review auth logs
+
+Multiple failed login attempts detected.
+
+ACCOUNT:     admin.ops
+SOURCE IP:   203.0.113.44
+ATTEMPTS:    27
+STATUS:      LOCKOUT TRIGGERED
+
+What is the safest first response?`,
+      optionA: 'Ignore it unless the user complains',
+      optionB: 'Document, verify, and escalate the suspicious activity',
+      correct: 'B',
+      successStatus: 'Status: Suspicious login activity documented and escalated.',
+    },
+    {
+      title: 'RANSOMWARE WARNING',
+      body: `> inspect file server
+
+Unusual file rename activity detected.
+
+HOST:        FILE-SRV-02
+PATTERN:     .locked extension
+RATE:        400 files/minute
+STATUS:      ACTIVE SPREAD
+
+What should the analyst prioritize first?`,
+      optionA: 'Isolate affected system and preserve evidence',
+      optionB: 'Delete random files to slow it down',
+      correct: 'A',
+      successStatus: 'Status: Ransomware response selected. Isolation prioritized.',
+    },
+    {
+      title: 'PORT SCAN DETECTED',
+      body: `> inspect IDS alert
+
+Possible reconnaissance detected.
+
+SOURCE:      198.51.100.77
+TARGET:      OPS-NET
+PORTS:       22, 80, 443, 3389, 8080
+STATUS:      SCANNING
+
+What does this activity most likely represent?`,
+      optionA: 'Normal printer traffic',
+      optionB: 'Reconnaissance / network scanning',
+      correct: 'B',
+      successStatus: 'Status: Reconnaissance activity identified.',
+    },
+    {
+      title: 'INTEGRITY ALERT',
+      body: `> verify config hash
+
+Configuration mismatch detected.
+
+DEVICE:      CORE-SWITCH-01
+BASELINE:    MATCH FAILED
+CHANGE LOG:  NO APPROVED CHANGE FOUND
+STATUS:      UNAUTHORIZED MODIFICATION
+
+Which CIA Triad principle is MOST directly affected?`,
+      optionA: 'Integrity',
+      optionB: 'Availability',
+      correct: 'A',
+      successStatus: 'Status: Integrity issue identified and flagged.',
+    },
+  ];
 
   constructor() {
     super('main-scene');
@@ -422,49 +519,38 @@ export default class MainScene extends Phaser.Scene {
     this.player.setVelocity(0);
     this.playTone(760, 0.08);
 
-    const overlayBg = this.add.rectangle(640, 430, 760, 420, 0x020617, 0.96);
+    const scenario = Phaser.Utils.Array.GetRandom(this.terminalScenarios);
+
+    const overlayBg = this.add.rectangle(640, 430, 800, 450, 0x020617, 0.96);
     overlayBg.setStrokeStyle(3, 0x00ff99);
 
-    const header = this.add.text(300, 250, 'SOC TERMINAL // INCIDENT REVIEW', {
-      fontSize: '26px',
+    const header = this.add.text(280, 230, `SOC TERMINAL // ${scenario.title}`, {
+      fontSize: '24px',
       color: '#00ff99',
     });
 
-    const body = this.add.text(
-      300,
-      295,
-      `> scan outbound traffic
+    const body = this.add.text(280, 280, scenario.body, {
+      fontSize: '18px',
+      color: '#d1fae5',
+      lineSpacing: 7,
+      wordWrap: { width: 720 },
+    });
 
-Suspicious outbound connection detected.
-
-SOURCE:      OPS-RACK-03
-DESTINATION: 185.199.108.153
-PORT:        6667
-STATUS:      UNAUTHORIZED
-
-Which CIA Triad principle is MOST at risk if unauthorized data leaves the network?`,
-      {
-        fontSize: '19px',
-        color: '#d1fae5',
-        lineSpacing: 7,
-      }
-    );
-
-    const optionA = this.add.text(330, 515, '[ A ] Confidentiality', {
-      fontSize: '22px',
+    const optionA = this.add.text(310, 535, `[ A ] ${scenario.optionA}`, {
+      fontSize: '21px',
       color: '#ffffff',
       backgroundColor: '#111827',
       padding: { x: 12, y: 8 },
     });
 
-    const optionB = this.add.text(330, 565, '[ B ] Availability', {
-      fontSize: '22px',
+    const optionB = this.add.text(310, 590, `[ B ] ${scenario.optionB}`, {
+      fontSize: '21px',
       color: '#ffffff',
       backgroundColor: '#111827',
       padding: { x: 12, y: 8 },
     });
 
-    const closeText = this.add.text(690, 630, 'ESC / X = close', {
+    const closeText = this.add.text(700, 650, 'ESC / X = close', {
       fontSize: '18px',
       color: '#94a3b8',
     });
@@ -480,29 +566,34 @@ Which CIA Triad principle is MOST at risk if unauthorized data leaves the networ
 
     this.terminalOverlay.setDepth(100);
 
-    const chooseCorrect = () => {
+    const completeTerminal = () => {
       if (this.terminalComplete) return;
 
       this.playSuccessSound();
       this.terminalComplete = true;
       this.terminalOpen = false;
       this.addScore(10);
-      this.statusText.setText('Status: SOC terminal reviewed. Confidentiality risk confirmed.');
+      this.statusText.setText(scenario.successStatus);
       this.updateObjectives();
       this.terminalOverlay?.destroy();
     };
 
-    const chooseWrong = () => {
+    const wrongAnswer = () => {
       this.playTone(180, 0.12);
       this.increaseThreat(8);
-      this.statusText.setText('Status: Incorrect terminal analysis increased threat.');
+      this.statusText.setText('Status: Incorrect SOC analysis increased threat.');
     };
 
     optionA.setInteractive({ useHandCursor: true });
     optionB.setInteractive({ useHandCursor: true });
 
-    optionA.on('pointerdown', chooseCorrect);
-    optionB.on('pointerdown', chooseWrong);
+    optionA.on('pointerdown', () => {
+      scenario.correct === 'A' ? completeTerminal() : wrongAnswer();
+    });
+
+    optionB.on('pointerdown', () => {
+      scenario.correct === 'B' ? completeTerminal() : wrongAnswer();
+    });
 
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     const xKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.X);
