@@ -38,6 +38,8 @@ export default class MainScene extends Phaser.Scene {
 
   badgeComplete = false;
   employeeComplete = false;
+  serverClueComplete = false;
+  laptopComplete = false;
   patchComplete = false;
   terminalComplete = false;
   cameraComplete = false;
@@ -251,6 +253,8 @@ Which CIA Triad principle is MOST directly affected?`,
       repeat: -1,
     });
 
+    const serverRackZones: Phaser.GameObjects.Rectangle[] = [];
+
     for (let y = 340; y <= 560; y += 90) {
       const rack = this.add.sprite(340, y, 'serverRack');
       rack.setScale(2.2);
@@ -267,10 +271,16 @@ Which CIA Triad principle is MOST directly affected?`,
 
       this.physics.add.existing(rack, true);
       this.walls.add(rack as any);
+
+      const rackZone = this.add.rectangle(410, y, 120, 90, 0x00ff66, 0.01);
+      this.physics.add.existing(rackZone, true);
+      serverRackZones.push(rackZone);
     }
 
     const badge = this.add.sprite(170, 340, 'badgeReader').setScale(2.2);
     const worker = this.add.sprite(500, 380, 'worker').setScale(2.2);
+    const laptop = this.add.sprite(610, 620, 'laptop').setScale(2.2);
+
     const patch = this.add.sprite(930, 340, 'patchPanel').setScale(2.2);
     const terminal = this.add.sprite(930, 560, 'terminal').setScale(2.2);
     const cameraPanel = this.add.sprite(1030, 560, 'camera').setScale(2.2);
@@ -329,6 +339,7 @@ Which CIA Triad principle is MOST directly affected?`,
 
     this.add.text(135, 390, 'Badge', { color: '#ffffff' });
     this.add.text(470, 440, 'Worker', { color: '#ffffff' });
+    this.add.text(575, 665, 'Laptop', { color: '#ffffff' });
     this.add.text(885, 390, 'Patch Panel', { color: '#ffffff' });
     this.add.text(900, 610, 'Terminal', { color: '#ffffff' });
     this.add.text(1000, 610, 'Cameras', { color: '#ffffff' });
@@ -338,7 +349,7 @@ Which CIA Triad principle is MOST directly affected?`,
       color: '#ffcccc',
     });
 
-    [badge, worker, patch, terminal, cameraPanel, rogueTerminal].forEach(
+    [badge, worker, laptop, patch, terminal, cameraPanel, rogueTerminal].forEach(
       (obj) => this.physics.add.existing(obj, true)
     );
 
@@ -359,7 +370,6 @@ Which CIA Triad principle is MOST directly affected?`,
     this.playerLight.setDepth(6);
     this.rogueGlow.setDepth(6);
 
-    // Roaming guard + proximity detection
     this.guardDetectionCircle = this.add.circle(430, 610, 95, 0xff3333, 0.12);
     this.guardDetectionCircle.setStrokeStyle(2, 0xff6666, 0.6);
     this.guardDetectionCircle.setDepth(7);
@@ -448,6 +458,63 @@ Which CIA Triad principle is MOST directly affected?`,
       }
     );
 
+    serverRackZones.forEach((zone) => {
+      this.setupInteraction(
+        zone,
+        () =>
+          this.serverClueComplete
+            ? 'Server logs already reviewed'
+            : 'Press E to inspect server logs',
+        () => {
+          if (this.serverClueComplete) return;
+
+          this.playTone(640, 0.08);
+          this.serverClueComplete = true;
+          this.addScore(10);
+          this.statusText.setText('Status: Server logs show outbound traffic from OPS-RACK-03.');
+          this.updateObjectives();
+
+          alert(
+            `SERVER LOGS FOUND
+
+OPS-RACK-03 shows repeated outbound traffic to an untrusted destination.
+
+Clue:
+The Rogue Node appears to be using a compromised operations rack as a relay point.`
+          );
+        }
+      );
+    });
+
+    this.setupInteraction(
+      laptop,
+      () =>
+        this.laptopComplete
+          ? 'Laptop evidence reviewed'
+          : 'Press E to inspect laptop',
+      () => {
+        if (this.laptopComplete) return;
+
+        this.playTone(720, 0.08);
+        this.laptopComplete = true;
+        this.addScore(10);
+        this.statusText.setText('Status: Laptop evidence recovered.');
+        this.updateObjectives();
+
+        alert(
+          `LAPTOP EVIDENCE
+
+Recovered note:
+
+"Temporary VPN exception approved for contractor access.
+Do not disable until after maintenance window."
+
+Risk:
+The laptop suggests poor access control and a possible unauthorized remote access path.`
+        );
+      }
+    );
+
     this.setupInteraction(
       patch,
       () =>
@@ -516,14 +583,22 @@ Which CIA Triad principle is MOST directly affected?`,
       () => {
         if (this.rogueTerminalComplete) return;
 
-        if (!this.patchComplete || !this.terminalComplete || !this.cameraComplete) {
+        if (
+          !this.serverClueComplete ||
+          !this.laptopComplete ||
+          !this.patchComplete ||
+          !this.terminalComplete ||
+          !this.cameraComplete
+        ) {
           this.playTone(180, 0.12);
-          alert('Complete Operations Room objectives first.');
+          alert(
+            'You need more evidence before containment.\n\nRequired:\n- Server logs\n- Laptop evidence\n- Patch panel\n- SOC terminal\n- Cameras'
+          );
           return;
         }
 
         const answer = prompt(
-          'FINAL CONTAINMENT:\n\nUnauthorized outbound traffic is detected.\n\nWhat should the analyst do first?\n\nA) Document evidence and isolate the affected system\nB) Delete random files'
+          'FINAL CONTAINMENT:\n\nUnauthorized outbound traffic is detected and supporting evidence has been collected.\n\nWhat should the analyst do first?\n\nA) Document evidence and isolate the affected system\nB) Delete random files'
         );
 
         if (answer?.toLowerCase() === 'a') {
@@ -538,7 +613,7 @@ Which CIA Triad principle is MOST directly affected?`,
           this.cameras.main.shake(250, 0.006);
 
           alert(
-            'Mission Complete!\n\nYou successfully identified and contained the Rogue Node before the data leak completed.'
+            'Mission Complete!\n\nYou collected evidence, analyzed the incident, and safely contained the Rogue Node.'
           );
         }
       }
@@ -693,6 +768,20 @@ Which CIA Triad principle is MOST directly affected?`,
       g.fillStyle(0x000000);
       g.fillRect(12, 40, 8, 6);
       g.fillRect(28, 40, 8, 6);
+    });
+
+    makeTexture('laptop', (g) => {
+      g.fillStyle(0x020617);
+      g.fillRect(8, 10, 32, 22);
+      g.lineStyle(3, 0x38bdf8);
+      g.strokeRect(8, 10, 32, 22);
+      g.fillStyle(0x00ff99);
+      g.fillRect(14, 17, 20, 4);
+      g.fillRect(14, 24, 12, 4);
+      g.fillStyle(0x475569);
+      g.fillRect(5, 34, 38, 7);
+      g.fillStyle(0x94a3b8);
+      g.fillRect(18, 36, 12, 2);
     });
 
     makeTexture('patchPanel', (g) => {
@@ -971,6 +1060,8 @@ Which CIA Triad principle is MOST directly affected?`,
     this.objectiveText.setText(
 `${done(this.badgeComplete)} Verify badge access
 ${done(this.employeeComplete)} Verify employee
+${done(this.serverClueComplete)} Inspect server logs
+${done(this.laptopComplete)} Review laptop evidence
 ${done(this.patchComplete)} Inspect patch panel
 ${done(this.terminalComplete)} Analyze SOC terminal
 ${done(this.cameraComplete)} Review cameras
