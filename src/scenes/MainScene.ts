@@ -9,9 +9,11 @@ export default class MainScene extends Phaser.Scene {
   objectiveText!: Phaser.GameObjects.Text;
   statusText!: Phaser.GameObjects.Text;
   timerText!: Phaser.GameObjects.Text;
+  threatText!: Phaser.GameObjects.Text;
 
   score = 0;
   timeRemaining = 300;
+  threatLevel = 0;
 
   badgeComplete = false;
   employeeComplete = false;
@@ -26,6 +28,7 @@ export default class MainScene extends Phaser.Scene {
 
   walls!: Phaser.Physics.Arcade.StaticGroup;
   securityDoor!: Phaser.GameObjects.Sprite;
+  cameraZone!: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super('main-scene');
@@ -58,6 +61,11 @@ export default class MainScene extends Phaser.Scene {
     this.timerText = this.add.text(1010, 60, 'DATA LEAK: 05:00', {
       fontSize: '24px',
       color: '#ff4444',
+    });
+
+    this.threatText = this.add.text(1010, 95, 'THREAT: 0%', {
+      fontSize: '22px',
+      color: '#f97316',
     });
 
     this.statusText = this.add.text(
@@ -150,6 +158,19 @@ export default class MainScene extends Phaser.Scene {
     const cameraPanel = this.add.sprite(1030, 560, 'camera').setScale(2.2);
     const rogueTerminal = this.add.sprite(1090, 340, 'rogueNode').setScale(2.6);
 
+    // Camera detection zone
+    this.cameraZone = this.add.rectangle(980, 455, 300, 150, 0xff0000, 0.13);
+    this.cameraZone.setStrokeStyle(2, 0xff3333);
+    this.physics.add.existing(this.cameraZone, true);
+
+    this.tweens.add({
+      targets: this.cameraZone,
+      alpha: 0.03,
+      duration: 700,
+      yoyo: true,
+      repeat: -1,
+    });
+
     this.tweens.add({
       targets: rogueTerminal,
       scaleX: 2.95,
@@ -197,6 +218,12 @@ export default class MainScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
 
     this.physics.add.collider(this.player, this.walls);
+
+    this.physics.add.overlap(this.player, this.cameraZone, () => {
+      if (this.missionComplete || this.missionFailed || this.cameraComplete) return;
+
+      this.increaseThreat(0.4);
+    });
 
     this.keys = this.input.keyboard?.addKeys({
       w: Phaser.Input.Keyboard.KeyCodes.W,
@@ -299,7 +326,7 @@ export default class MainScene extends Phaser.Scene {
       cameraPanel,
       () =>
         this.cameraComplete
-          ? 'Cameras reviewed'
+          ? 'Cameras reviewed; detection zone disabled'
           : 'Press E to inspect cameras',
       () => {
         if (this.cameraComplete) return;
@@ -311,8 +338,9 @@ export default class MainScene extends Phaser.Scene {
         if (answer?.toLowerCase() === 'b') {
           this.playTone(680, 0.08);
           this.cameraComplete = true;
+          this.cameraZone.destroy();
           this.addScore(10);
-          this.statusText.setText('Status: Camera blind spots documented.');
+          this.statusText.setText('Status: Cameras reviewed. Detection zone disabled.');
           this.updateObjectives();
         }
       }
@@ -474,6 +502,17 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
+  increaseThreat(amount: number) {
+    if (this.missionComplete || this.missionFailed) return;
+
+    this.threatLevel = Math.min(100, this.threatLevel + amount);
+    this.threatText.setText(`THREAT: ${Math.floor(this.threatLevel)}%`);
+
+    if (this.threatLevel >= 100) {
+      this.failMission('MISSION COMPROMISED: Camera detection threshold exceeded');
+    }
+  }
+
   playTone(frequency: number, duration: number) {
     const audioContext = new AudioContext();
     const oscillator = audioContext.createOscillator();
@@ -531,18 +570,18 @@ export default class MainScene extends Phaser.Scene {
     }
 
     if (this.timeRemaining <= 0) {
-      this.failMission();
+      this.failMission('MISSION FAILED: Unauthorized exfiltration completed');
     }
   }
 
-  failMission() {
+  failMission(reason = 'MISSION FAILED') {
     this.missionFailed = true;
 
     this.playTone(140, 0.4);
 
     this.player.setVelocity(0);
 
-    this.statusText.setText('MISSION FAILED: Unauthorized exfiltration completed');
+    this.statusText.setText(reason);
     this.timerText.setText('DATA LEAK: FAILED');
 
     this.add.text(330, 420, 'MISSION FAILED', {
@@ -555,8 +594,8 @@ export default class MainScene extends Phaser.Scene {
       },
     });
 
-    this.add.text(300, 500, 'Unauthorized exfiltration completed.', {
-      fontSize: '28px',
+    this.add.text(250, 500, reason, {
+      fontSize: '26px',
       color: '#ffffff',
       backgroundColor: '#111827',
       padding: {
