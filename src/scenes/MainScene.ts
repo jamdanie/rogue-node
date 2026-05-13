@@ -25,7 +25,7 @@ export default class MainScene extends Phaser.Scene {
   missionFailed = false;
 
   walls!: Phaser.Physics.Arcade.StaticGroup;
-  securityDoor!: Phaser.GameObjects.Rectangle;
+  securityDoor!: Phaser.GameObjects.Sprite;
 
   constructor() {
     super('main-scene');
@@ -39,9 +39,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   create() {
+    this.createPixelAssets();
+
     this.cameras.main.setBackgroundColor('#050816');
 
-    // HUD
     this.add.rectangle(640, 95, 1280, 190, 0x0b1220);
 
     this.add.text(20, 20, 'Rogue Node: Data Center Containment', {
@@ -84,7 +85,6 @@ export default class MainScene extends Phaser.Scene {
       loop: true,
     });
 
-    // Floor
     this.add.rectangle(640, 500, 1160, 480, 0x141c2f);
 
     this.add.text(130, 260, 'ACCESS CONTROL ROOM', {
@@ -99,12 +99,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.walls = this.physics.add.staticGroup();
 
-    const createWall = (
-      x: number,
-      y: number,
-      width: number,
-      height: number
-    ) => {
+    const createWall = (x: number, y: number, width: number, height: number) => {
       const wall = this.add.rectangle(x, y, width, height, 0x3b4252);
       this.physics.add.existing(wall, true);
       this.walls.add(wall as any);
@@ -117,25 +112,24 @@ export default class MainScene extends Phaser.Scene {
     createWall(780, 370, 25, 180);
     createWall(780, 650, 25, 180);
 
-    // Door
-    this.securityDoor = this.add.rectangle(780, 510, 55, 130, 0xaa0000);
+    this.securityDoor = this.add.sprite(780, 510, 'door');
+    this.securityDoor.setScale(2.1);
     this.physics.add.existing(this.securityDoor, true);
     this.walls.add(this.securityDoor as any);
 
     this.tweens.add({
       targets: this.securityDoor,
-      alpha: 0.5,
+      alpha: 0.45,
       duration: 900,
       yoyo: true,
       repeat: -1,
     });
 
-    // Server racks
     for (let y = 340; y <= 560; y += 90) {
-      const rack = this.add.rectangle(340, y, 70, 80, 0x0f172a);
-      rack.setStrokeStyle(2, 0x00ff66);
+      const rack = this.add.sprite(340, y, 'serverRack');
+      rack.setScale(2.2);
 
-      const light = this.add.circle(355, y - 25, 4, 0x00ff66);
+      const light = this.add.circle(358, y - 25, 4, 0x00ff66);
 
       this.tweens.add({
         targets: light,
@@ -149,20 +143,17 @@ export default class MainScene extends Phaser.Scene {
       this.walls.add(rack as any);
     }
 
-    // Objects
-    const badge = this.add.rectangle(170, 340, 70, 70, 0x2563eb);
-    const worker = this.add.rectangle(500, 380, 55, 90, 0xfacc15);
-    const patch = this.add.rectangle(930, 340, 70, 70, 0xf59e0b);
-    const terminal = this.add.rectangle(930, 560, 70, 70, 0x00ff99);
-    const cameraPanel = this.add.rectangle(1030, 560, 70, 70, 0x8b5cf6);
-
-    const rogueTerminal = this.add.rectangle(1090, 340, 110, 110, 0xff0033);
-    rogueTerminal.setStrokeStyle(6, 0xffffff);
+    const badge = this.add.sprite(170, 340, 'badgeReader').setScale(2.2);
+    const worker = this.add.sprite(500, 380, 'worker').setScale(2.2);
+    const patch = this.add.sprite(930, 340, 'patchPanel').setScale(2.2);
+    const terminal = this.add.sprite(930, 560, 'terminal').setScale(2.2);
+    const cameraPanel = this.add.sprite(1030, 560, 'camera').setScale(2.2);
+    const rogueTerminal = this.add.sprite(1090, 340, 'rogueNode').setScale(2.6);
 
     this.tweens.add({
       targets: rogueTerminal,
-      scaleX: 1.12,
-      scaleY: 1.12,
+      scaleX: 2.95,
+      scaleY: 2.95,
       duration: 700,
       yoyo: true,
       repeat: -1,
@@ -186,13 +177,13 @@ export default class MainScene extends Phaser.Scene {
       });
     });
 
-    this.add.text(140, 385, 'Badge', { color: '#ffffff' });
+    this.add.text(135, 390, 'Badge', { color: '#ffffff' });
     this.add.text(470, 440, 'Worker', { color: '#ffffff' });
-    this.add.text(885, 385, 'Patch Panel', { color: '#ffffff' });
-    this.add.text(900, 605, 'Terminal', { color: '#ffffff' });
-    this.add.text(1000, 605, 'Cameras', { color: '#ffffff' });
+    this.add.text(885, 390, 'Patch Panel', { color: '#ffffff' });
+    this.add.text(900, 610, 'Terminal', { color: '#ffffff' });
+    this.add.text(1000, 610, 'Cameras', { color: '#ffffff' });
 
-    this.add.text(1040, 410, 'ROGUE NODE', {
+    this.add.text(1038, 415, 'ROGUE NODE', {
       fontSize: '20px',
       color: '#ffcccc',
     });
@@ -201,7 +192,6 @@ export default class MainScene extends Phaser.Scene {
       (obj) => this.physics.add.existing(obj, true)
     );
 
-    // Player
     this.player = this.physics.add.sprite(120, 650, 'player');
     this.player.setScale(1.8);
     this.player.setCollideWorldBounds(true);
@@ -226,7 +216,6 @@ export default class MainScene extends Phaser.Scene {
       },
     });
 
-    // Interactions restored
     this.setupInteraction(
       badge,
       () => (this.badgeComplete ? 'Badge verified' : 'Press E to scan badge'),
@@ -358,6 +347,124 @@ export default class MainScene extends Phaser.Scene {
     );
   }
 
+  createPixelAssets() {
+    const makeTexture = (
+      key: string,
+      draw: (g: Phaser.GameObjects.Graphics) => void,
+      width = 48,
+      height = 48
+    ) => {
+      const g = this.add.graphics();
+      draw(g);
+      g.generateTexture(key, width, height);
+      g.destroy();
+    };
+
+    makeTexture('badgeReader', (g) => {
+      g.fillStyle(0x0f172a);
+      g.fillRect(6, 4, 36, 40);
+      g.lineStyle(3, 0x38bdf8);
+      g.strokeRect(6, 4, 36, 40);
+      g.fillStyle(0x22c55e);
+      g.fillRect(16, 10, 16, 6);
+      g.fillStyle(0xffffff);
+      g.fillRect(18, 24, 12, 4);
+      g.fillRect(18, 31, 12, 4);
+    });
+
+    makeTexture('worker', (g) => {
+      g.fillStyle(0xfacc15);
+      g.fillRect(16, 4, 16, 10);
+      g.fillStyle(0xffcc99);
+      g.fillRect(14, 14, 20, 16);
+      g.fillStyle(0x1f2937);
+      g.fillRect(12, 30, 24, 14);
+      g.fillStyle(0xffffff);
+      g.fillRect(17, 18, 4, 4);
+      g.fillRect(27, 18, 4, 4);
+    });
+
+    makeTexture('patchPanel', (g) => {
+      g.fillStyle(0x111827);
+      g.fillRect(4, 8, 40, 30);
+      g.lineStyle(3, 0xf59e0b);
+      g.strokeRect(4, 8, 40, 30);
+      g.fillStyle(0x38bdf8);
+      for (let x = 10; x <= 34; x += 8) {
+        g.fillRect(x, 18, 4, 6);
+      }
+      g.lineStyle(2, 0x22c55e);
+      g.lineBetween(12, 32, 20, 40);
+      g.lineBetween(28, 32, 36, 40);
+    });
+
+    makeTexture('terminal', (g) => {
+      g.fillStyle(0x0f172a);
+      g.fillRect(4, 6, 40, 28);
+      g.lineStyle(3, 0x00ff99);
+      g.strokeRect(4, 6, 40, 28);
+      g.fillStyle(0x00ff99);
+      g.fillRect(10, 14, 24, 4);
+      g.fillRect(10, 22, 16, 4);
+      g.fillStyle(0x334155);
+      g.fillRect(18, 34, 12, 8);
+      g.fillRect(12, 42, 24, 4);
+    });
+
+    makeTexture('camera', (g) => {
+      g.fillStyle(0x312e81);
+      g.fillRect(8, 14, 30, 18);
+      g.lineStyle(3, 0xa78bfa);
+      g.strokeRect(8, 14, 30, 18);
+      g.fillStyle(0x000000);
+      g.fillCircle(18, 23, 6);
+      g.fillStyle(0x60a5fa);
+      g.fillCircle(18, 23, 3);
+      g.fillStyle(0xa78bfa);
+      g.fillRect(34, 18, 8, 10);
+    });
+
+    makeTexture('rogueNode', (g) => {
+      g.fillStyle(0x450a0a);
+      g.fillRect(4, 4, 40, 40);
+      g.lineStyle(4, 0xff0033);
+      g.strokeRect(4, 4, 40, 40);
+      g.fillStyle(0xff0033);
+      g.fillCircle(24, 24, 12);
+      g.fillStyle(0xffffff);
+      g.fillCircle(24, 24, 5);
+      g.lineStyle(2, 0xffcccc);
+      g.lineBetween(24, 8, 24, 16);
+      g.lineBetween(24, 32, 24, 40);
+      g.lineBetween(8, 24, 16, 24);
+      g.lineBetween(32, 24, 40, 24);
+    });
+
+    makeTexture('door', (g) => {
+      g.fillStyle(0x450a0a);
+      g.fillRect(10, 2, 28, 44);
+      g.lineStyle(3, 0xff3333);
+      g.strokeRect(10, 2, 28, 44);
+      g.fillStyle(0xff3333);
+      g.fillRect(14, 20, 20, 6);
+    });
+
+    makeTexture('serverRack', (g) => {
+      g.fillStyle(0x020617);
+      g.fillRect(8, 2, 32, 44);
+      g.lineStyle(2, 0x00ff66);
+      g.strokeRect(8, 2, 32, 44);
+      g.fillStyle(0x334155);
+      g.fillRect(12, 8, 24, 5);
+      g.fillRect(12, 18, 24, 5);
+      g.fillRect(12, 28, 24, 5);
+      g.fillStyle(0x22c55e);
+      g.fillCircle(32, 10, 2);
+      g.fillCircle(32, 20, 2);
+      g.fillCircle(32, 30, 2);
+    });
+  }
+
   updateTimer() {
     if (this.missionComplete || this.missionFailed) return;
 
@@ -419,7 +526,8 @@ export default class MainScene extends Phaser.Scene {
     if (this.badgeComplete && this.employeeComplete && !this.doorUnlocked) {
       this.doorUnlocked = true;
 
-      this.securityDoor.fillColor = 0x00ff00;
+      this.securityDoor.setTexture('door');
+      this.securityDoor.setTint(0x22c55e);
       this.securityDoor.alpha = 1;
 
       this.walls.remove(this.securityDoor as any);
