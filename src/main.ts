@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+
+import BootScene from './scenes/BootScene';
 import MainScene from './scenes/MainScene';
 import Level2Scene from './scenes/Level2Scene';
 
@@ -7,13 +9,19 @@ const config: Phaser.Types.Core.GameConfig = {
   width: 1280,
   height: 800,
   backgroundColor: '#020617',
+
   physics: {
     default: 'arcade',
     arcade: {
       debug: false,
     },
   },
-  scene: [MainScene, Level2Scene],
+
+  scene: [
+    BootScene,
+    MainScene,
+    Level2Scene
+  ],
 };
 
 new Phaser.Game(config);
