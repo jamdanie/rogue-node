@@ -612,9 +612,11 @@ The laptop suggests poor access control and a possible unauthorized remote acces
 
           this.cameras.main.shake(250, 0.006);
 
-          alert(
-            'Mission Complete!\n\nYou collected evidence, analyzed the incident, and safely contained the Rogue Node.'
-          );
+         this.cameras.main.fadeOut(1500, 0, 0, 0);
+
+this.time.delayedCall(1700, () => {
+  this.scene.start('level2-scene');
+});
         }
       }
     );
