@@ -11,6 +11,9 @@ export default class MainScene extends Phaser.Scene {
   timerText!: Phaser.GameObjects.Text;
   threatText!: Phaser.GameObjects.Text;
 
+  playerLight!: Phaser.GameObjects.Arc;
+  rogueGlow!: Phaser.GameObjects.Arc;
+
   score = 0;
   timeRemaining = 300;
   threatLevel = 0;
@@ -44,7 +47,7 @@ export default class MainScene extends Phaser.Scene {
   create() {
     this.createPixelAssets();
 
-    this.cameras.main.setBackgroundColor('#050816');
+    this.cameras.main.setBackgroundColor('#020617');
 
     this.add.rectangle(640, 95, 1280, 190, 0x0b1220);
 
@@ -93,7 +96,17 @@ export default class MainScene extends Phaser.Scene {
       loop: true,
     });
 
-    this.add.rectangle(640, 500, 1160, 480, 0x141c2f);
+    // Main floor
+    this.add.rectangle(640, 500, 1160, 480, 0x111827);
+
+    // Subtle grid lines for data center floor
+    for (let x = 80; x <= 1200; x += 80) {
+      this.add.line(x, 500, 0, -230, 0, 230, 0x1f2937, 0.35);
+    }
+
+    for (let y = 280; y <= 700; y += 80) {
+      this.add.line(640, y, -560, 0, 560, 0, 0x1f2937, 0.35);
+    }
 
     this.add.text(130, 260, 'ACCESS CONTROL ROOM', {
       fontSize: '20px',
@@ -158,15 +171,27 @@ export default class MainScene extends Phaser.Scene {
     const cameraPanel = this.add.sprite(1030, 560, 'camera').setScale(2.2);
     const rogueTerminal = this.add.sprite(1090, 340, 'rogueNode').setScale(2.6);
 
-    // Camera detection zone
-    this.cameraZone = this.add.rectangle(980, 455, 300, 150, 0xff0000, 0.13);
-    this.cameraZone.setStrokeStyle(2, 0xff3333);
+    // Hidden camera detection zone
+    this.cameraZone = this.add.rectangle(980, 455, 300, 150, 0xff0000, 0.03);
+    this.cameraZone.setStrokeStyle(2, 0xff3333, 0.15);
     this.physics.add.existing(this.cameraZone, true);
 
     this.tweens.add({
       targets: this.cameraZone,
-      alpha: 0.03,
+      alpha: 0.01,
       duration: 700,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.rogueGlow = this.add.circle(1090, 340, 95, 0xff0033, 0.18);
+
+    this.tweens.add({
+      targets: this.rogueGlow,
+      scaleX: 1.25,
+      scaleY: 1.25,
+      alpha: 0.05,
+      duration: 800,
       yoyo: true,
       repeat: -1,
     });
@@ -213,9 +238,29 @@ export default class MainScene extends Phaser.Scene {
       (obj) => this.physics.add.existing(obj, true)
     );
 
+    // Player light / flashlight effect
+    this.playerLight = this.add.circle(120, 650, 130, 0x38bdf8, 0.12);
+
+    this.tweens.add({
+      targets: this.playerLight,
+      scaleX: 1.08,
+      scaleY: 1.08,
+      alpha: 0.07,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Dark overlay strips around room edges
+    this.add.rectangle(640, 500, 1160, 480, 0x000000, 0.18).setDepth(5);
+
+    this.playerLight.setDepth(6);
+    this.rogueGlow.setDepth(6);
+
     this.player = this.physics.add.sprite(120, 650, 'player');
     this.player.setScale(1.8);
     this.player.setCollideWorldBounds(true);
+    this.player.setDepth(10);
 
     this.physics.add.collider(this.player, this.walls);
 
@@ -242,6 +287,8 @@ export default class MainScene extends Phaser.Scene {
         y: 8,
       },
     });
+
+    this.interactText.setDepth(20);
 
     this.setupInteraction(
       badge,
@@ -681,6 +728,9 @@ ${done(this.rogueTerminalComplete)} Contain Rogue Node`
     if (this.keys.s.isDown) this.player.setVelocityY(speed);
     if (this.keys.a.isDown) this.player.setVelocityX(-speed);
     if (this.keys.d.isDown) this.player.setVelocityX(speed);
+
+    this.playerLight.x = this.player.x;
+    this.playerLight.y = this.player.y;
 
     this.interactText.setText('');
   }
