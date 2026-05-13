@@ -25,6 +25,13 @@ export default class MainScene extends Phaser.Scene {
 
   terminalOverlay?: Phaser.GameObjects.Container;
 
+  guard!: Phaser.GameObjects.Sprite;
+  guardDetectionCircle!: Phaser.GameObjects.Arc;
+  guardDirection = 1;
+  guardMinX = 230;
+  guardMaxX = 650;
+  guardSpeed = 85;
+
   score = 0;
   timeRemaining = 300;
   threatLevel = 0;
@@ -174,7 +181,7 @@ Which CIA Triad principle is MOST directly affected?`,
     this.statusText = this.add.text(
       450,
       80,
-      'Status: Investigate access-control risks',
+      'Status: Avoid patrol and investigate access-control risks',
       {
         fontSize: '20px',
         color: '#facc15',
@@ -351,6 +358,30 @@ Which CIA Triad principle is MOST directly affected?`,
 
     this.playerLight.setDepth(6);
     this.rogueGlow.setDepth(6);
+
+    // Roaming guard + proximity detection
+    this.guardDetectionCircle = this.add.circle(430, 610, 95, 0xff3333, 0.12);
+    this.guardDetectionCircle.setStrokeStyle(2, 0xff6666, 0.6);
+    this.guardDetectionCircle.setDepth(7);
+
+    this.tweens.add({
+      targets: this.guardDetectionCircle,
+      scaleX: 1.18,
+      scaleY: 1.18,
+      alpha: 0.04,
+      duration: 850,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.guard = this.add.sprite(430, 610, 'guard');
+    this.guard.setScale(2.2);
+    this.guard.setDepth(9);
+
+    this.add.text(405, 665, 'Patrol', {
+      color: '#ffcccc',
+      fontSize: '16px',
+    }).setDepth(9);
 
     this.player = this.physics.add.sprite(120, 650, 'player');
     this.player.setScale(1.8);
@@ -647,6 +678,23 @@ Which CIA Triad principle is MOST directly affected?`,
       g.fillRect(27, 18, 4, 4);
     });
 
+    makeTexture('guard', (g) => {
+      g.fillStyle(0x1e293b);
+      g.fillRect(13, 10, 22, 30);
+      g.fillStyle(0x111827);
+      g.fillRect(10, 4, 28, 10);
+      g.fillStyle(0xffcc99);
+      g.fillRect(15, 14, 18, 13);
+      g.fillStyle(0xffffff);
+      g.fillRect(18, 18, 4, 4);
+      g.fillRect(27, 18, 4, 4);
+      g.fillStyle(0x38bdf8);
+      g.fillRect(18, 31, 12, 4);
+      g.fillStyle(0x000000);
+      g.fillRect(12, 40, 8, 6);
+      g.fillRect(28, 40, 8, 6);
+    });
+
     makeTexture('patchPanel', (g) => {
       g.fillStyle(0x111827);
       g.fillRect(4, 8, 40, 30);
@@ -728,6 +776,43 @@ Which CIA Triad principle is MOST directly affected?`,
     });
   }
 
+  updateGuard(delta: number) {
+    if (this.doorUnlocked || this.missionComplete || this.missionFailed) {
+      this.guard.setAlpha(0.35);
+      this.guardDetectionCircle.setAlpha(0);
+      return;
+    }
+
+    this.guard.x += this.guardDirection * this.guardSpeed * (delta / 1000);
+
+    if (this.guard.x >= this.guardMaxX) {
+      this.guard.x = this.guardMaxX;
+      this.guardDirection = -1;
+      this.guard.setFlipX(true);
+    }
+
+    if (this.guard.x <= this.guardMinX) {
+      this.guard.x = this.guardMinX;
+      this.guardDirection = 1;
+      this.guard.setFlipX(false);
+    }
+
+    this.guardDetectionCircle.x = this.guard.x;
+    this.guardDetectionCircle.y = this.guard.y;
+
+    const distance = Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      this.guard.x,
+      this.guard.y
+    );
+
+    if (distance < 95 && !this.terminalOpen) {
+      this.increaseThreat(0.22);
+      this.statusText.setText('Status: Patrol noticed you. Move away.');
+    }
+  }
+
   increaseThreat(amount: number) {
     if (this.missionComplete || this.missionFailed) return;
 
@@ -735,7 +820,7 @@ Which CIA Triad principle is MOST directly affected?`,
     this.threatText.setText(`THREAT: ${Math.floor(this.threatLevel)}%`);
 
     if (this.threatLevel >= 100) {
-      this.failMission('MISSION COMPROMISED: Camera detection threshold exceeded');
+      this.failMission('MISSION COMPROMISED: Detection threshold exceeded');
     }
   }
 
@@ -845,7 +930,7 @@ Which CIA Triad principle is MOST directly affected?`,
       const body = this.securityDoor.body as Phaser.Physics.Arcade.StaticBody;
       body.enable = false;
 
-      this.statusText.setText('Status: Door unlocked. Investigate Operations Room.');
+      this.statusText.setText('Status: Door unlocked. Patrol stood down. Investigate Operations Room.');
 
       this.tweens.add({
         targets: this.securityDoor,
@@ -893,7 +978,7 @@ ${done(this.rogueTerminalComplete)} Contain Rogue Node`
     );
   }
 
-  update() {
+  update(_time: number, delta: number) {
     if (this.missionComplete || this.missionFailed || this.terminalOpen) {
       this.player.setVelocity(0);
       return;
@@ -910,6 +995,8 @@ ${done(this.rogueTerminalComplete)} Contain Rogue Node`
 
     this.playerLight.x = this.player.x;
     this.playerLight.y = this.player.y;
+
+    this.updateGuard(delta);
 
     this.interactText.setText('');
   }
