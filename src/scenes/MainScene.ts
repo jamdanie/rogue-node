@@ -49,6 +49,7 @@ export default class MainScene extends Phaser.Scene {
   missionComplete = false;
   missionFailed = false;
   terminalOpen = false;
+  objectivesVisible = true;
 
   walls!: Phaser.Physics.Arcade.StaticGroup;
   securityDoor!: Phaser.GameObjects.Sprite;
@@ -194,9 +195,24 @@ Which CIA Triad principle is MOST directly affected?`,
       fontSize: '20px',
       color: '#ffffff',
       lineSpacing: 8,
+      backgroundColor: '#020617',
+      padding: {
+        x: 8,
+        y: 6,
+      },
     });
 
+    this.objectiveText.setDepth(50);
     this.updateObjectives();
+
+    const tabKey = this.input.keyboard?.addKey(
+      Phaser.Input.Keyboard.KeyCodes.TAB
+    );
+
+    tabKey?.on('down', () => {
+      this.objectivesVisible = !this.objectivesVisible;
+      this.updateObjectives();
+    });
 
     this.time.addEvent({
       delay: 1000,
@@ -612,11 +628,11 @@ The laptop suggests poor access control and a possible unauthorized remote acces
 
           this.cameras.main.shake(250, 0.006);
 
-         this.cameras.main.fadeOut(1500, 0, 0, 0);
+          this.cameras.main.fadeOut(1500, 0, 0, 0);
 
-this.time.delayedCall(1700, () => {
-  this.scene.start('level2-scene');
-});
+          this.time.delayedCall(1700, () => {
+            this.scene.start('level2-scene');
+          });
         }
       }
     );
@@ -1059,6 +1075,15 @@ this.time.delayedCall(1700, () => {
   updateObjectives() {
     const done = (value: boolean) => (value ? '✓' : '□');
 
+    if (!this.objectivesVisible) {
+      this.objectiveText.setText(
+`▶ OBJECTIVES HIDDEN
+
+[TAB] Show Objectives`
+      );
+      return;
+    }
+
     this.objectiveText.setText(
 `${done(this.badgeComplete)} Verify badge access
 ${done(this.employeeComplete)} Verify employee
@@ -1067,7 +1092,9 @@ ${done(this.laptopComplete)} Review laptop evidence
 ${done(this.patchComplete)} Inspect patch panel
 ${done(this.terminalComplete)} Analyze SOC terminal
 ${done(this.cameraComplete)} Review cameras
-${done(this.rogueTerminalComplete)} Contain Rogue Node`
+${done(this.rogueTerminalComplete)} Contain Rogue Node
+
+[TAB] Hide Objectives`
     );
   }
 
