@@ -8,41 +8,27 @@ export default class BootScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor('#020617');
 
-    // Background
     this.add.rectangle(640, 400, 1280, 800, 0x020617);
 
-    // Scan lines
-    for (let y = 0; y < 800; y += 6) {
-      this.add.rectangle(640, y, 1280, 1, 0x0f172a, 0.25);
+    for (let y = 0; y < 800; y += 5) {
+      this.add.rectangle(640, y, 1280, 1, 0x0f172a, 0.2);
     }
 
-    // Title
-    this.add.text(350, 80, 'ROGUE NODE // INCIDENT BRIEF', {
-      fontSize: '40px',
+    this.add.text(330, 50, 'ROGUE NODE // INCIDENT BRIEF', {
+      fontSize: '36px',
       color: '#00ff99',
       fontStyle: 'bold',
     });
 
-    // Classification
-    this.add.text(450, 150, 'CLASSIFICATION: INTERNAL', {
-      fontSize: '26px',
+    this.add.text(470, 90, 'CLASSIFICATION: INTERNAL', {
+      fontSize: '22px',
       color: '#f97316',
     });
 
-    // Mission briefing panel
-    const panel = this.add.rectangle(
-      640,
-      390,
-      820,
-      370,
-      0x0f172a,
-      0.95
-    );
-
+    const panel = this.add.rectangle(640, 350, 820, 470, 0x0f172a, 0.95);
     panel.setStrokeStyle(3, 0x00ff99);
 
-    const briefingText = `
-A rogue data center node is suspected
+    const briefingText = `A rogue data center node is suspected
 of exfiltrating sensitive information.
 
 MISSION OBJECTIVES
@@ -53,47 +39,56 @@ MISSION OBJECTIVES
 • Analyze SOC alerts
 • Contain Rogue Node
 
-WARNING:
-Unauthorized exposure increases
-threat levels and may compromise
-the mission.
-`;
+WARNING
 
-    this.add.text(330, 230, briefingText, {
-      fontSize: '26px',
+Unauthorized exposure increases threat levels
+and may compromise the mission.`;
+
+    this.add.text(310, 145, briefingText, {
+      fontSize: '23px',
       color: '#ffffff',
-      lineSpacing: 10,
+      lineSpacing: 8,
     });
 
-    // Bottom instructions
-    const deployText = this.add.text(
-      420,
-      690,
-      'PRESS SPACE TO DEPLOY',
-      {
-        fontSize: '34px',
-        color: '#facc15',
-      }
-    );
+    this.add.text(420, 635, '[ SYSTEM STATUS: READY FOR DEPLOYMENT ]', {
+      fontSize: '18px',
+      color: '#64748b',
+    });
 
-    // Pulse effect
+    const deployText = this.add.text(420, 690, 'PRESS SPACE TO DEPLOY', {
+      fontSize: '34px',
+      color: '#facc15',
+    });
+
     this.tweens.add({
       targets: deployText,
       alpha: 0.3,
-      duration: 800,
+      duration: 700,
       yoyo: true,
       repeat: -1,
     });
 
-    // Keyboard
+    const cursor = this.add.text(920, 690, '_', {
+      fontSize: '34px',
+      color: '#00ff99',
+    });
+
+    this.tweens.add({
+      targets: cursor,
+      alpha: 0,
+      duration: 450,
+      yoyo: true,
+      repeat: -1,
+    });
+
     const spaceKey = this.input.keyboard?.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE
     );
 
     spaceKey?.once('down', () => {
-      this.cameras.main.fadeOut(1000, 0, 0, 0);
+      this.cameras.main.fadeOut(900, 0, 0, 0);
 
-      this.time.delayedCall(1200, () => {
+      this.time.delayedCall(1100, () => {
         this.scene.start('main-scene');
       });
     });
