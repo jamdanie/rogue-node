@@ -39,9 +39,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor('#0d1117');
+    this.cameras.main.setBackgroundColor('#050816');
 
-    // ===== HUD =====
+    // HUD
     this.add.rectangle(640, 95, 1280, 190, 0x0b1220);
 
     this.add.text(20, 20, 'Rogue Node: Data Center Containment', {
@@ -55,13 +55,13 @@ export default class MainScene extends Phaser.Scene {
     });
 
     this.timerText = this.add.text(1010, 60, 'DATA LEAK: 05:00', {
-      fontSize: '22px',
-      color: '#ff5555',
+      fontSize: '24px',
+      color: '#ff4444',
     });
 
     this.statusText = this.add.text(
-      480,
-      85,
+      450,
+      80,
       'Status: Investigate access-control risks',
       {
         fontSize: '20px',
@@ -77,7 +77,6 @@ export default class MainScene extends Phaser.Scene {
 
     this.updateObjectives();
 
-    // Timer event
     this.time.addEvent({
       delay: 1000,
       callback: this.updateTimer,
@@ -85,17 +84,17 @@ export default class MainScene extends Phaser.Scene {
       loop: true,
     });
 
-    // ===== GAME FLOOR =====
-    this.add.rectangle(640, 500, 1160, 480, 0x1e2936);
+    // Floor
+    this.add.rectangle(640, 500, 1160, 480, 0x141c2f);
 
     this.add.text(130, 260, 'ACCESS CONTROL ROOM', {
       fontSize: '20px',
-      color: '#94a3b8',
+      color: '#6b7280',
     });
 
     this.add.text(875, 260, 'OPERATIONS ROOM', {
       fontSize: '20px',
-      color: '#94a3b8',
+      color: '#6b7280',
     });
 
     this.walls = this.physics.add.staticGroup();
@@ -106,7 +105,7 @@ export default class MainScene extends Phaser.Scene {
       width: number,
       height: number
     ) => {
-      const wall = this.add.rectangle(x, y, width, height, 0x444444);
+      const wall = this.add.rectangle(x, y, width, height, 0x3b4252);
       this.physics.add.existing(wall, true);
       this.walls.add(wall as any);
     };
@@ -115,31 +114,77 @@ export default class MainScene extends Phaser.Scene {
     createWall(640, 730, 1160, 20);
     createWall(60, 500, 20, 480);
     createWall(1220, 500, 20, 480);
-
     createWall(780, 370, 25, 180);
     createWall(780, 650, 25, 180);
 
+    // Door
     this.securityDoor = this.add.rectangle(780, 510, 55, 130, 0xaa0000);
     this.physics.add.existing(this.securityDoor, true);
     this.walls.add(this.securityDoor as any);
 
+    this.tweens.add({
+      targets: this.securityDoor,
+      alpha: 0.5,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Server racks
     for (let y = 340; y <= 560; y += 90) {
-      const rack = this.add.rectangle(340, y, 70, 80, 0x101010);
+      const rack = this.add.rectangle(340, y, 70, 80, 0x0f172a);
       rack.setStrokeStyle(2, 0x00ff66);
+
+      const light = this.add.circle(355, y - 25, 4, 0x00ff66);
+
+      this.tweens.add({
+        targets: light,
+        alpha: 0.2,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+      });
 
       this.physics.add.existing(rack, true);
       this.walls.add(rack as any);
     }
 
-    // ===== OBJECTS =====
-    const badge = this.add.rectangle(170, 340, 70, 70, 0x0066ff);
-    const worker = this.add.rectangle(500, 380, 55, 90, 0xffff00);
-    const patch = this.add.rectangle(930, 340, 70, 70, 0xffaa00);
-    const terminal = this.add.rectangle(930, 560, 70, 70, 0x00aa66);
-    const cameraPanel = this.add.rectangle(1030, 560, 70, 70, 0xaa00ff);
+    // Objects
+    const badge = this.add.rectangle(170, 340, 70, 70, 0x2563eb);
+    const worker = this.add.rectangle(500, 380, 55, 90, 0xfacc15);
+    const patch = this.add.rectangle(930, 340, 70, 70, 0xf59e0b);
+    const terminal = this.add.rectangle(930, 560, 70, 70, 0x00ff99);
+    const cameraPanel = this.add.rectangle(1030, 560, 70, 70, 0x8b5cf6);
 
     const rogueTerminal = this.add.rectangle(1090, 340, 110, 110, 0xff0033);
-    rogueTerminal.setStrokeStyle(5, 0xffffff);
+    rogueTerminal.setStrokeStyle(6, 0xffffff);
+
+    this.tweens.add({
+      targets: rogueTerminal,
+      scaleX: 1.12,
+      scaleY: 1.12,
+      duration: 700,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.tweens.add({
+      targets: rogueTerminal,
+      alpha: 0.65,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    [terminal, cameraPanel].forEach((obj) => {
+      this.tweens.add({
+        targets: obj,
+        alpha: 0.55,
+        duration: 700,
+        yoyo: true,
+        repeat: -1,
+      });
+    });
 
     this.add.text(140, 385, 'Badge', { color: '#ffffff' });
     this.add.text(470, 440, 'Worker', { color: '#ffffff' });
@@ -181,18 +226,16 @@ export default class MainScene extends Phaser.Scene {
       },
     });
 
-    // ===== INTERACTIONS =====
+    // Interactions restored
     this.setupInteraction(
       badge,
-      () =>
-        this.badgeComplete
-          ? 'Badge verified'
-          : 'Press E to scan badge',
+      () => (this.badgeComplete ? 'Badge verified' : 'Press E to scan badge'),
       () => {
         if (this.badgeComplete) return;
 
         this.badgeComplete = true;
         this.addScore(10);
+        this.statusText.setText('Status: Badge verified. Check worker identity.');
         this.updateObjectives();
         this.checkDoorUnlock();
       }
@@ -209,6 +252,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.employeeComplete = true;
         this.addScore(10);
+        this.statusText.setText('Status: Access-control risks cleared.');
         this.updateObjectives();
         this.checkDoorUnlock();
       }
@@ -317,7 +361,7 @@ export default class MainScene extends Phaser.Scene {
   updateTimer() {
     if (this.missionComplete || this.missionFailed) return;
 
-    this.timeRemaining -= 1;
+    this.timeRemaining--;
 
     const minutes = Math.floor(this.timeRemaining / 60);
     const seconds = this.timeRemaining % 60;
@@ -327,6 +371,15 @@ export default class MainScene extends Phaser.Scene {
         .toString()
         .padStart(2, '0')}`
     );
+
+    if (this.timeRemaining <= 60) {
+      this.tweens.add({
+        targets: this.timerText,
+        alpha: 0.2,
+        duration: 300,
+        yoyo: true,
+      });
+    }
 
     if (this.timeRemaining <= 0) {
       this.failMission();
@@ -367,15 +420,14 @@ export default class MainScene extends Phaser.Scene {
       this.doorUnlocked = true;
 
       this.securityDoor.fillColor = 0x00ff00;
+      this.securityDoor.alpha = 1;
 
       this.walls.remove(this.securityDoor as any);
 
       const body = this.securityDoor.body as Phaser.Physics.Arcade.StaticBody;
       body.enable = false;
 
-      this.statusText.setText(
-        'Status: Door unlocked. Investigate Operations Room.'
-      );
+      this.statusText.setText('Status: Door unlocked. Investigate Operations Room.');
     }
   }
 
