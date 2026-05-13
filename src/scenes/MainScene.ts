@@ -222,6 +222,7 @@ export default class MainScene extends Phaser.Scene {
       () => {
         if (this.badgeComplete) return;
 
+        this.playTone(700, 0.08);
         this.badgeComplete = true;
         this.addScore(10);
         this.statusText.setText('Status: Badge verified. Check worker identity.');
@@ -239,6 +240,7 @@ export default class MainScene extends Phaser.Scene {
       () => {
         if (this.employeeComplete) return;
 
+        this.playTone(520, 0.08);
         this.employeeComplete = true;
         this.addScore(10);
         this.statusText.setText('Status: Access-control risks cleared.');
@@ -261,6 +263,7 @@ export default class MainScene extends Phaser.Scene {
         );
 
         if (answer?.toLowerCase() === 'b') {
+          this.playTone(600, 0.08);
           this.patchComplete = true;
           this.addScore(10);
           this.statusText.setText('Status: Network cabling verified.');
@@ -283,6 +286,7 @@ export default class MainScene extends Phaser.Scene {
         );
 
         if (answer?.toLowerCase() === 'a') {
+          this.playTone(760, 0.08);
           this.terminalComplete = true;
           this.addScore(10);
           this.statusText.setText('Status: CIA Triad confirmed.');
@@ -305,6 +309,7 @@ export default class MainScene extends Phaser.Scene {
         );
 
         if (answer?.toLowerCase() === 'b') {
+          this.playTone(680, 0.08);
           this.cameraComplete = true;
           this.addScore(10);
           this.statusText.setText('Status: Camera blind spots documented.');
@@ -323,6 +328,7 @@ export default class MainScene extends Phaser.Scene {
         if (this.rogueTerminalComplete) return;
 
         if (!this.patchComplete || !this.terminalComplete || !this.cameraComplete) {
+          this.playTone(180, 0.12);
           alert('Complete Operations Room objectives first.');
           return;
         }
@@ -332,12 +338,15 @@ export default class MainScene extends Phaser.Scene {
         );
 
         if (answer?.toLowerCase() === 'a') {
+          this.playSuccessSound();
           this.rogueTerminalComplete = true;
           this.missionComplete = true;
           this.addScore(20);
           this.statusText.setText('MISSION COMPLETE: Rogue Node contained');
           this.timerText.setText('DATA LEAK: CONTAINED');
           this.updateObjectives();
+
+          this.cameras.main.shake(250, 0.006);
 
           alert(
             'Mission Complete!\n\nYou successfully identified and contained the Rogue Node before the data leak completed.'
@@ -465,6 +474,39 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
+  playTone(frequency: number, duration: number) {
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'square';
+    oscillator.frequency.value = frequency;
+
+    gainNode.gain.setValueAtTime(0.04, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioContext.currentTime + duration
+    );
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+  }
+
+  playSuccessSound() {
+    this.playTone(600, 0.08);
+
+    this.time.delayedCall(100, () => {
+      this.playTone(800, 0.08);
+    });
+
+    this.time.delayedCall(200, () => {
+      this.playTone(1000, 0.12);
+    });
+  }
+
   updateTimer() {
     if (this.missionComplete || this.missionFailed) return;
 
@@ -496,6 +538,8 @@ export default class MainScene extends Phaser.Scene {
   failMission() {
     this.missionFailed = true;
 
+    this.playTone(140, 0.4);
+
     this.player.setVelocity(0);
 
     this.statusText.setText('MISSION FAILED: Unauthorized exfiltration completed');
@@ -526,7 +570,8 @@ export default class MainScene extends Phaser.Scene {
     if (this.badgeComplete && this.employeeComplete && !this.doorUnlocked) {
       this.doorUnlocked = true;
 
-      this.securityDoor.setTexture('door');
+      this.playSuccessSound();
+
       this.securityDoor.setTint(0x22c55e);
       this.securityDoor.alpha = 1;
 
@@ -536,6 +581,16 @@ export default class MainScene extends Phaser.Scene {
       body.enable = false;
 
       this.statusText.setText('Status: Door unlocked. Investigate Operations Room.');
+
+      this.tweens.add({
+        targets: this.securityDoor,
+        scaleY: 0.05,
+        alpha: 0.2,
+        duration: 650,
+        ease: 'Power2',
+      });
+
+      this.cameras.main.shake(180, 0.003);
     }
   }
 
