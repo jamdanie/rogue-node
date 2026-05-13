@@ -14,6 +14,8 @@ export default class MainScene extends Phaser.Scene {
   playerLight!: Phaser.GameObjects.Arc;
   rogueGlow!: Phaser.GameObjects.Arc;
 
+  terminalOverlay?: Phaser.GameObjects.Container;
+
   score = 0;
   timeRemaining = 300;
   threatLevel = 0;
@@ -28,6 +30,7 @@ export default class MainScene extends Phaser.Scene {
   doorUnlocked = false;
   missionComplete = false;
   missionFailed = false;
+  terminalOpen = false;
 
   walls!: Phaser.Physics.Arcade.StaticGroup;
   securityDoor!: Phaser.GameObjects.Sprite;
@@ -96,10 +99,8 @@ export default class MainScene extends Phaser.Scene {
       loop: true,
     });
 
-    // Main floor
     this.add.rectangle(640, 500, 1160, 480, 0x111827);
 
-    // Subtle grid lines for data center floor
     for (let x = 80; x <= 1200; x += 80) {
       this.add.line(x, 500, 0, -230, 0, 230, 0x1f2937, 0.35);
     }
@@ -171,7 +172,6 @@ export default class MainScene extends Phaser.Scene {
     const cameraPanel = this.add.sprite(1030, 560, 'camera').setScale(2.2);
     const rogueTerminal = this.add.sprite(1090, 340, 'rogueNode').setScale(2.6);
 
-    // Hidden camera detection zone
     this.cameraZone = this.add.rectangle(980, 455, 300, 150, 0xff0000, 0.03);
     this.cameraZone.setStrokeStyle(2, 0xff3333, 0.15);
     this.physics.add.existing(this.cameraZone, true);
@@ -238,7 +238,6 @@ export default class MainScene extends Phaser.Scene {
       (obj) => this.physics.add.existing(obj, true)
     );
 
-    // Player light / flashlight effect
     this.playerLight = this.add.circle(120, 650, 130, 0x38bdf8, 0.12);
 
     this.tweens.add({
@@ -251,7 +250,6 @@ export default class MainScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // Dark overlay strips around room edges
     this.add.rectangle(640, 500, 1160, 480, 0x000000, 0.18).setDepth(5);
 
     this.playerLight.setDepth(6);
@@ -266,7 +264,6 @@ export default class MainScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.cameraZone, () => {
       if (this.missionComplete || this.missionFailed || this.cameraComplete) return;
-
       this.increaseThreat(0.4);
     });
 
@@ -351,21 +348,10 @@ export default class MainScene extends Phaser.Scene {
       () =>
         this.terminalComplete
           ? 'Terminal reviewed'
-          : 'Press E to access terminal',
+          : 'Press E to open SOC terminal',
       () => {
-        if (this.terminalComplete) return;
-
-        const answer = prompt(
-          'CIA TRIAD:\n\nWhich option correctly names the CIA Triad?\n\nA) Confidentiality Integrity Availability\nB) Cyber Intelligence Access'
-        );
-
-        if (answer?.toLowerCase() === 'a') {
-          this.playTone(760, 0.08);
-          this.terminalComplete = true;
-          this.addScore(10);
-          this.statusText.setText('Status: CIA Triad confirmed.');
-          this.updateObjectives();
-        }
+        if (this.terminalComplete || this.terminalOpen) return;
+        this.openTerminalMiniGame();
       }
     );
 
@@ -429,6 +415,108 @@ export default class MainScene extends Phaser.Scene {
         }
       }
     );
+  }
+
+  openTerminalMiniGame() {
+    this.terminalOpen = true;
+    this.player.setVelocity(0);
+    this.playTone(760, 0.08);
+
+    const overlayBg = this.add.rectangle(640, 430, 760, 420, 0x020617, 0.96);
+    overlayBg.setStrokeStyle(3, 0x00ff99);
+
+    const header = this.add.text(300, 250, 'SOC TERMINAL // INCIDENT REVIEW', {
+      fontSize: '26px',
+      color: '#00ff99',
+    });
+
+    const body = this.add.text(
+      300,
+      295,
+      `> scan outbound traffic
+
+Suspicious outbound connection detected.
+
+SOURCE:      OPS-RACK-03
+DESTINATION: 185.199.108.153
+PORT:        6667
+STATUS:      UNAUTHORIZED
+
+Which CIA Triad principle is MOST at risk if unauthorized data leaves the network?`,
+      {
+        fontSize: '19px',
+        color: '#d1fae5',
+        lineSpacing: 7,
+      }
+    );
+
+    const optionA = this.add.text(330, 515, '[ A ] Confidentiality', {
+      fontSize: '22px',
+      color: '#ffffff',
+      backgroundColor: '#111827',
+      padding: { x: 12, y: 8 },
+    });
+
+    const optionB = this.add.text(330, 565, '[ B ] Availability', {
+      fontSize: '22px',
+      color: '#ffffff',
+      backgroundColor: '#111827',
+      padding: { x: 12, y: 8 },
+    });
+
+    const closeText = this.add.text(690, 630, 'ESC / X = close', {
+      fontSize: '18px',
+      color: '#94a3b8',
+    });
+
+    this.terminalOverlay = this.add.container(0, 0, [
+      overlayBg,
+      header,
+      body,
+      optionA,
+      optionB,
+      closeText,
+    ]);
+
+    this.terminalOverlay.setDepth(100);
+
+    const chooseCorrect = () => {
+      if (this.terminalComplete) return;
+
+      this.playSuccessSound();
+      this.terminalComplete = true;
+      this.terminalOpen = false;
+      this.addScore(10);
+      this.statusText.setText('Status: SOC terminal reviewed. Confidentiality risk confirmed.');
+      this.updateObjectives();
+      this.terminalOverlay?.destroy();
+    };
+
+    const chooseWrong = () => {
+      this.playTone(180, 0.12);
+      this.increaseThreat(8);
+      this.statusText.setText('Status: Incorrect terminal analysis increased threat.');
+    };
+
+    optionA.setInteractive({ useHandCursor: true });
+    optionB.setInteractive({ useHandCursor: true });
+
+    optionA.on('pointerdown', chooseCorrect);
+    optionB.on('pointerdown', chooseWrong);
+
+    const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    const xKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+
+    escKey?.once('down', () => this.closeTerminalMiniGame());
+    xKey?.once('down', () => this.closeTerminalMiniGame());
+  }
+
+  closeTerminalMiniGame() {
+    if (!this.terminalOpen) return;
+
+    this.terminalOpen = false;
+    this.terminalOverlay?.destroy();
+    this.statusText.setText('Status: SOC terminal closed.');
   }
 
   createPixelAssets() {
@@ -639,7 +727,7 @@ export default class MainScene extends Phaser.Scene {
         x: 20,
         y: 12,
       },
-    });
+    }).setDepth(200);
 
     this.add.text(250, 500, reason, {
       fontSize: '26px',
@@ -649,7 +737,7 @@ export default class MainScene extends Phaser.Scene {
         x: 20,
         y: 12,
       },
-    });
+    }).setDepth(200);
   }
 
   checkDoorUnlock() {
@@ -686,7 +774,7 @@ export default class MainScene extends Phaser.Scene {
     action: () => void
   ) {
     this.physics.add.overlap(this.player, object, () => {
-      if (this.missionComplete || this.missionFailed) return;
+      if (this.missionComplete || this.missionFailed || this.terminalOpen) return;
 
       this.interactText.setText(getText());
 
@@ -708,14 +796,14 @@ export default class MainScene extends Phaser.Scene {
 `${done(this.badgeComplete)} Verify badge access
 ${done(this.employeeComplete)} Verify employee
 ${done(this.patchComplete)} Inspect patch panel
-${done(this.terminalComplete)} Access terminal
+${done(this.terminalComplete)} Analyze SOC terminal
 ${done(this.cameraComplete)} Review cameras
 ${done(this.rogueTerminalComplete)} Contain Rogue Node`
     );
   }
 
   update() {
-    if (this.missionComplete || this.missionFailed) {
+    if (this.missionComplete || this.missionFailed || this.terminalOpen) {
       this.player.setVelocity(0);
       return;
     }
