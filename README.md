@@ -31,7 +31,7 @@ Players must:
 - Review SOC terminal alerts
 - Analyze camera risks
 - Contain the **Rogue Node**
-
+ 
 All while managing:
 
 🚨 Threat level  
