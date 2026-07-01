@@ -14,7 +14,7 @@ A browser-based cybersecurity stealth and investigation game built with **TypeSc
  
 No installation required — runs directly in your browser.
 
---- 
+---  
 
 ## 🕹️ Gameplay Preview
 
