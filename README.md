@@ -4,7 +4,7 @@ A browser-based cybersecurity stealth and investigation game built with **TypeSc
 
 **Rogue Node** puts players inside a compromised data center where they must investigate suspicious activity, avoid patrol detection, analyze infrastructure, inspect evidence, and contain a rogue system before sensitive information is leaked.
 
----
+--- 
 
 # 🎮 Play the Live Demo
  
