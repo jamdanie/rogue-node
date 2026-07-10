@@ -15,7 +15,7 @@ A browser-based cybersecurity stealth and investigation game built with **TypeSc
 No installation required — runs directly in your browser. 
 
 ---  
-
+ 
 ## 🕹️ Gameplay Preview 
 
 You play as an investigator navigating a rogue data center while attempting to stop a malicious system before a simulated data leak completes.
