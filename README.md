@@ -12,7 +12,7 @@ A browser-based cybersecurity stealth and investigation game built with **TypeSc
  
 ### https://jamdanie.github.io/rogue-node/ 
    
-No installation required — runs directly in your browser. 
+No installation required — runs directly in your browser.  
 
 ---  
   
