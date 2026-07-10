@@ -20,7 +20,7 @@ No installation required — runs directly in your browser.
 
 You play as an investigator navigating a rogue data center while attempting to stop a malicious system before a simulated data leak completes.
 
-Players must:
+Players must: 
 
 - Verify badge access
 - Investigate employee identity
