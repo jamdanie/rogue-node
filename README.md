@@ -25,7 +25,7 @@ Players must:
 - Verify badge access
 - Investigate employee identity
 - Avoid roaming patrols
-- Analyze server logs
+- Analyze server logs 
 - Recover laptop evidence
 - Inspect network patch panels
 - Review SOC terminal alerts
